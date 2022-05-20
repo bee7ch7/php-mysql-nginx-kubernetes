@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: mysql
+  name: mysql
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - args:
+            - --default-authentication-plugin=mysql_native_password
+          env:
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql_secret
+                  key: password
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql_secret
+                  key: password
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql_secret
+                  key: username
+          image: mysql
+          name: mysql
+          ports:
+            - containerPort: 3306
+          tty: true
+          volumeMounts:
+            - mountPath: /docker-entrypoint-initdb.d
+              subPath: mydump
+              name: task-pv-storage
+            
+            - mountPath: /var/lib/mysql
+              name: mysql
+              
+      restartPolicy: Always
+      volumes:
+        - name: task-pv-storage
+          persistentVolumeClaim:
+            claimName: task-pv-claim
+
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql
+      spec:
+        storageClassName: microk8s-hostpath
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+
+

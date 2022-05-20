@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: webserver
+  name: webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      labels:
+        app: webserver
+    spec:
+      containers:
+        - image: nginx:latest
+          name: webserver
+
+          env:
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql_secret
+                  key: password
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql_secret
+                  key: username
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql_secret
+                  key: db_name
+
+          ports:
+            - containerPort: 80
+            - containerPort: 443
+          tty: true
+          volumeMounts:
+            - mountPath: /var/www
+              subPath: app
+              name: task-pv-storage
+              
+            - mountPath: /etc/nginx/conf.d/app.conf
+              subPath: app.conf
+              readOnly: true
+              name: app-conf
+
+            - mountPath: /var/log/nginx/
+              subPath: logs/nginx
+              name: task-pv-storage
+
+      restartPolicy: Always
+      volumes:
+        - name: task-pv-storage
+          persistentVolumeClaim:
+            claimName: task-pv-claim
+
+        - name: app-conf
+          configMap:
+            name: app-conf
+            items:
+              - key: app.conf
+                path: app.conf

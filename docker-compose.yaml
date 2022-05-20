@@ -1,0 +1,64 @@
+version: '3'
+services:
+  
+  #PHP Service
+  app:
+    build:
+       context: ./app
+       dockerfile: Dockerfile
+    image: bee7ch/php7.2-bee7ch
+    container_name: app
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www/
+    volumes:
+      - ./app:/var/www
+    networks:
+      - app-network
+
+  #Nginx Service
+  webserver:
+    image: nginx:latest
+    container_name: webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MYSQL_USER: user_wr
+      MYSQL_PASSWORD: secret123
+      DB_NAME: employees
+    volumes:
+      - ./app:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+      - ./logs/nginx/:/var/log/nginx/
+    networks:
+      - app-network
+  mysql:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: mysqldb
+    restart: always
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_USER: user_wr
+      MYSQL_PASSWORD: secret123
+      MYSQL_ROOT_PASSWORD: secret123
+      DB_NAME: employees
+    volumes:
+       - mysqldbvolume:/var/lib/mysql
+       - ./mydump:/docker-entrypoint-initdb.d
+    networks:
+      - app-network 
+networks:
+    app-network:
+# Volumes
+volumes:
+  mysqldbvolume:
+    driver: local

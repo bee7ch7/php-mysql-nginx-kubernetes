@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: app
+  name: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: app
+    spec: 
+      containers:
+        - env:
+            - name: SERVICE_NAME
+              value: app
+            - name: SERVICE_TAGS
+              value: dev
+          image: bee7ch/php7.2-bee7ch
+          name: app
+          tty: true
+          volumeMounts:
+            - mountPath: /var/www
+              subPath: app
+              name: task-pv-storage
+          workingDir: /var/www/
+      restartPolicy: Always
+      volumes:
+        - name: task-pv-storage
+          persistentVolumeClaim:
+            claimName: task-pv-claim
